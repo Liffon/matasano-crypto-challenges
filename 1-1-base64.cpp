@@ -126,8 +126,13 @@ char *read_hex_buffer(char *hex_buffer, size_t hex_length, size_t *result_length
         index < *result_length;
         index++)
     {
-        sscanf(hex_buffer, "%2hhx", &buffer[index]);
+        if(0 == sscanf(hex_buffer, "%2hhx", &buffer[index])) {
+            fprintf(stderr, "Invalid hex character. Aborting!\n");
+            *result_length = 0;
+            return NULL;
+        } else {
         hex_buffer += 2;
+        }
     }
 
     return buffer;
