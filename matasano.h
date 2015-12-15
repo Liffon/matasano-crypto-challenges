@@ -136,3 +136,31 @@ char *read_hex_buffer(char *hex_buffer, size_t hex_length, size_t *result_length
 
     return buffer;
 }
+
+char *read_hex_until_eof(size_t *result_length) {
+    size_t input_length;
+    char *input = read_until_eof(&input_length);
+
+    char *result;
+    result = read_hex_buffer(input, input_length, result_length);
+
+    return result;
+}
+
+char *xor_buffers(char *one, size_t one_length, char *two, size_t two_length) {
+    assert(one_length <= two_length);
+
+    char *result = (char *) malloc(one_length);
+    if(!result) {
+        return NULL;
+    }
+
+    for(int i = 0;
+        i < one_length;
+        i++)
+    {
+        result[i] = one[i] ^ two[i];
+    }
+
+    return result;
+}
