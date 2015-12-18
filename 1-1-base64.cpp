@@ -5,31 +5,26 @@ int main(int argc, char **argv) {
     int encode = 1;
 
     size_t input_length;
-    char *input = read_until_eof(&input_length);
+    byte *input = read_until_eof(&input_length);
 
     size_t parsed_length;
-    char *parsed;
+    byte *parsed;
     if(read_hex) {
-        parsed = read_hex_buffer(input, input_length, &parsed_length);
+        parsed = parse_hex_buffer(input, input_length, &parsed_length);
     } else {
         parsed = input;
         parsed_length = input_length;
     }
 
     size_t result_length;
-    char *result;
+    byte *result;
     if(encode) {
         result = base64_encode(parsed, parsed_length, &result_length);
     } else {
         result = parsed;
         result_length = parsed_length;
     }
-    for(int i = 0;
-        i < result_length;
-        i++)
-    {
-        putchar(result[i]);
-    }
+    print_buffer(result, result_length);
 
     free(result);
     

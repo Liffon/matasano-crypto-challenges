@@ -49,18 +49,16 @@ base64bytes base64_chunk(base256bytes input_chunk, int bytes = 3) {
     return result;
 }
 
-char *base64_encode(const char *input, size_t input_length, size_t *output_length) {
-    assert(input_length >= 0);
-
+byte *base64_encode(const byte *input, size_t input_length, size_t *output_length) {
     *output_length = (input_length + 2) / 3 * 4; // input_length / 3 rounded up * 4
-    char *output = (char *) malloc(*output_length);
+    byte *output = (byte *) malloc(*output_length);
     if(!output) {
         *output_length = 0;
         return NULL;
     }
 
-    int result_index = 0;
-    for(int byte_index = 0;
+    size_t result_index = 0;
+    for(size_t byte_index = 0;
         byte_index < input_length;
         byte_index += 3)
     {
@@ -82,10 +80,10 @@ char *base64_encode(const char *input, size_t input_length, size_t *output_lengt
     return output;
 }
 
-#define CHUNK_SIZE 4096
-char *read_until_eof(size_t *input_length) {
-    *input_length = CHUNK_SIZE;
-    char *buffer = (char *) malloc(*input_length);
+byte *read_until_eof(size_t *input_length) {
+    const size_t chunk_size = 4096;
+    *input_length = chunk_size;
+    byte *buffer = (byte *) malloc(*input_length);
     if(!buffer) {
         *input_length = 0;
         return NULL;
@@ -94,12 +92,12 @@ char *read_until_eof(size_t *input_length) {
     size_t bytes_read = 0;
     size_t bytes_read_in_chunk;
     while(!feof(stdin)) {
-        bytes_read_in_chunk = fread(buffer + bytes_read, 1, CHUNK_SIZE, stdin);
+        bytes_read_in_chunk = fread(buffer + bytes_read, 1, chunk_size, stdin);
         bytes_read += bytes_read_in_chunk;
 
-        if(bytes_read_in_chunk == CHUNK_SIZE && !feof(stdin)) {
-            *input_length += CHUNK_SIZE;
-            buffer = (char *) realloc((void *) buffer, *input_length);
+        if(bytes_read_in_chunk == chunk_size && !feof(stdin)) {
+            *input_length += chunk_size;
+            buffer = (byte *) realloc((void *) buffer, *input_length);
         }
         else if(ferror(stdin)) {
             free(buffer);
@@ -108,25 +106,74 @@ char *read_until_eof(size_t *input_length) {
     }
 
     *input_length = bytes_read;
-    buffer = (char *) realloc((void *) buffer, *input_length);
+    buffer = (byte *) realloc((void *) buffer, *input_length);
 
     return buffer;
 }
 
-char *read_hex_buffer(char *hex_buffer, size_t hex_length, size_t *result_length) {
+byte *read_until_eol(size_t *input_length) {
+    const size_t chunk_size = 1;
+    *input_length = chunk_size;
+    byte *buffer = (byte *) malloc(*input_length);
+    if(!buffer) {
+        *input_length = 0;
+        return NULL;
+    }
+
+    size_t bytes_read = 0;
+    size_t bytes_read_in_chunk;
+    bool found_eol = false;
+    size_t eol_index = 0;
+    while(!feof(stdin)) {
+        bytes_read_in_chunk = fread(buffer + bytes_read, 1, chunk_size, stdin);
+        bytes_read += bytes_read_in_chunk;
+
+        for(; eol_index < bytes_read; eol_index++) {
+            if(buffer[eol_index] == '\n') {
+                found_eol = true;
+                break;
+            }
+        }
+        if(found_eol) {
+            break;
+        }
+
+        if(bytes_read_in_chunk == chunk_size && !feof(stdin)) {
+            *input_length += chunk_size;
+            buffer = (byte *) realloc((void *) buffer, *input_length);
+        }
+        else if(ferror(stdin)) {
+            free(buffer);
+            return NULL;
+        }
+    }
+
+    if(!found_eol) {
+        free(buffer);
+        *input_length = 0;
+        return NULL;
+    }
+
+    *input_length = eol_index;
+    buffer = (byte *) realloc((void *) buffer, *input_length);
+
+    return buffer;
+}
+
+byte *parse_hex_buffer(byte *hex_buffer, size_t hex_length, size_t *result_length) {
     *result_length = hex_length / 2;
-    char *buffer = (char *) malloc(*result_length);
+    byte *buffer = (byte *) malloc(*result_length);
     if(!buffer) {
         *result_length = 0;
         return NULL;
     }
 
-    for(int index = 0;
+    for(size_t index = 0;
         index < *result_length;
         index++)
     {
         if(0 == sscanf(hex_buffer, "%2hhx", &buffer[index])) {
-            fprintf(stderr, "Invalid hex character. Aborting!\n");
+            fprintf(stderr, "Invalid hex byteacter. Aborting!\n");
             *result_length = 0;
             return NULL;
         } else {
@@ -137,25 +184,25 @@ char *read_hex_buffer(char *hex_buffer, size_t hex_length, size_t *result_length
     return buffer;
 }
 
-char *read_hex_until_eof(size_t *result_length) {
+byte *read_hex_until_eof(size_t *result_length) {
     size_t input_length;
-    char *input = read_until_eof(&input_length);
+    byte *input = read_until_eof(&input_length);
 
-    char *result;
-    result = read_hex_buffer(input, input_length, result_length);
+    byte *result;
+    result = parse_hex_buffer(input, input_length, result_length);
 
     return result;
 }
 
-char *xor_buffers(char *one, size_t one_length, char *two, size_t two_length) {
+byte *xor_buffers(byte *one, size_t one_length, byte *two, size_t two_length) {
     assert(one_length <= two_length);
 
-    char *result = (char *) malloc(one_length);
+    byte *result = (byte *) malloc(one_length);
     if(!result) {
         return NULL;
     }
 
-    for(int i = 0;
+    for(size_t i = 0;
         i < one_length;
         i++)
     {
@@ -163,4 +210,23 @@ char *xor_buffers(char *one, size_t one_length, char *two, size_t two_length) {
     }
 
     return result;
+}
+
+void print_buffer(byte *buffer, size_t length) {
+    for(size_t i = 0;
+        i < length;
+        i++)
+    {
+        putchar(buffer[i]);
+    }
+
+}
+
+void hex_print_buffer(byte *buffer, size_t length) {
+    for(size_t i = 0;
+        i < length;
+        i++)
+    {
+        printf("%x", buffer[i]);
+    }
 }
