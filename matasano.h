@@ -141,7 +141,7 @@ buffer *parse_hex_buffer(const buffer *hex) {
         index < result->length;
         index++)
     {
-        int size_read = sscanf(&temp_string[index], "%2" SCNx8, &result->bytes[index]);
+        int size_read = sscanf(&temp_string[2*index], "%2" SCNx8, &result->bytes[index]);
         if(size_read == 0) {
             fprintf(stderr, "Invalid hex character. Aborting!\n");
             result->length = 0;
