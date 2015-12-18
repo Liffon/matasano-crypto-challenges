@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include "buffer.h"
+#include "letters.h"
 
 const char *base64values = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 

@@ -1,3 +1,4 @@
 *.swp
 base64
 xor
+single-byte
