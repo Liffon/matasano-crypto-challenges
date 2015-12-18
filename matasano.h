@@ -156,27 +156,26 @@ buffer *parse_hex_buffer(const buffer *hex) {
     }
 
     // sscanf needs a null-terminated string apparently.
-    // But why do we need two bytes extra?
-    char *temp_string = (char *)malloc(hex->length + 2);
+    char *temp_string = (char *)malloc(hex->length + 1);
     if(!temp_string) {
         free(result);
         return NULL;
     }
     memcpy(temp_string, hex->bytes, hex->length);
     temp_string[hex->length] = 0;
-    temp_string[hex->length + 1] = 0;
 
     for(size_t index = 0;
         index < result->length;
         index++)
     {
-        int size_read = sscanf(temp_string, "%2" SCNx8, &result->bytes[index]);
+        int size_read = sscanf(&temp_string[index], "%2" SCNx8, &result->bytes[index]);
         if(size_read == 0) {
             fprintf(stderr, "Invalid hex character. Aborting!\n");
             result->length = 0;
             return NULL;
         }
     }
+    free(temp_string);
 
     return result;
 }
