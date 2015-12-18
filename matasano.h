@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 #include "buffer.h"
 
 const char *base64values = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -154,14 +155,22 @@ buffer *parse_hex_buffer(const buffer *hex) {
         return NULL;
     }
 
+    // sscanf needs a null-terminated string apparently.
+    // But why do we need two bytes extra?
+    char *temp_string = (char *)malloc(hex->length + 2);
+    if(!temp_string) {
+        free(result);
+        return NULL;
+    }
+    memcpy(temp_string, hex->bytes, hex->length);
+    temp_string[hex->length] = 0;
+    temp_string[hex->length + 1] = 0;
+
     for(size_t index = 0;
         index < result->length;
         index++)
     {
-        int size_read = sscanf(
-                (const char *)&hex->bytes[2 * index],
-                "%2" SCNx8,
-                &result->bytes[index]);
+        int size_read = sscanf(temp_string, "%2" SCNx8, &result->bytes[index]);
         if(size_read == 0) {
             fprintf(stderr, "Invalid hex character. Aborting!\n");
             result->length = 0;
@@ -179,24 +188,6 @@ buffer *read_hex_until_eof() {
     result = parse_hex_buffer(input);
 
     free(input);
-    return result;
-}
-
-byte *xor_buffers(byte *one, size_t one_length, byte *two, size_t two_length) {
-    assert(one_length <= two_length);
-
-    byte *result = (byte *) malloc(one_length);
-    if(!result) {
-        return NULL;
-    }
-
-    for(size_t i = 0;
-        i < one_length;
-        i++)
-    {
-        result[i] = one[i] ^ two[i];
-    }
-
     return result;
 }
 
@@ -230,6 +221,6 @@ void hex_print_buffer(buffer *chars) {
         i < chars->length;
         i++)
     {
-        printf("%x", chars->bytes[i]);
+        printf("%02x", chars->bytes[i]);
     }
 }

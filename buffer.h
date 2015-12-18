@@ -11,7 +11,7 @@ struct buffer {
 };
 
 buffer *allocate_buffer(size_t length) {
-    buffer *result = (buffer *)malloc(sizeof(size_t) + length + 1);
+    buffer *result = (buffer *)malloc(sizeof(size_t) + length);
     if(result) {
         result->length = length;
     }
@@ -19,7 +19,7 @@ buffer *allocate_buffer(size_t length) {
 }
 
 buffer *resize_buffer(buffer *old_buffer, size_t length) {
-    buffer *result = (buffer *)realloc(old_buffer, sizeof(size_t) + length + 1);
+    buffer *result = (buffer *)realloc(old_buffer, sizeof(size_t) + length);
     if(result) {
         result->length = length;
     }
