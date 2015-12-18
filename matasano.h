@@ -48,62 +48,35 @@ base64bytes base64_chunk(base256bytes input_chunk, int bytes = 3) {
     return result;
 }
 
-byte *base64_encode(const byte *input, size_t input_length, size_t *output_length) {
-    *output_length = (input_length + 2) / 3 * 4; // input_length / 3 rounded up * 4
-    byte *output = (byte *) malloc(*output_length);
+buffer *base64_encode(buffer *input) {
+    size_t output_length = (input->length + 2) / 3 * 4; // input->length / 3 rounded up * 4
+    buffer *output = allocate_buffer(output_length);
+
     if(!output) {
-        *output_length = 0;
         return NULL;
     }
 
     size_t result_index = 0;
     for(size_t byte_index = 0;
-        byte_index < input_length;
+        byte_index < input->length;
         byte_index += 3)
     {
         base256bytes input_chunk;
-        input_chunk.bytes[0] = input[byte_index];
-        input_chunk.bytes[1] = input[byte_index + 1];
-        input_chunk.bytes[2] = input[byte_index + 2];
+        input_chunk.bytes[0] = input->bytes[byte_index];
+        input_chunk.bytes[1] = input->bytes[byte_index + 1];
+        input_chunk.bytes[2] = input->bytes[byte_index + 2];
 
-        int bytes_left = input_length - byte_index;
+        int bytes_left = input->length - byte_index;
         int bytes_in_chunk = bytes_left < 3 ? bytes_left : 3;
         base64bytes result = base64_chunk(input_chunk, bytes_in_chunk);
 
-        output[result_index++] = result.bytes[0];
-        output[result_index++] = result.bytes[1];
-        output[result_index++] = result.bytes[2];
-        output[result_index++] = result.bytes[3];
+        output->bytes[result_index++] = result.bytes[0];
+        output->bytes[result_index++] = result.bytes[1];
+        output->bytes[result_index++] = result.bytes[2];
+        output->bytes[result_index++] = result.bytes[3];
     }
 
     return output;
-}
-
-buffer *read_until_eof() {
-    const size_t chunk_size = 4096;
-    buffer *result = allocate_buffer(chunk_size);
-    if(!result) {
-        return NULL;
-    }
-
-    size_t bytes_read = 0;
-    size_t bytes_read_in_chunk;
-    while(!feof(stdin)) {
-        bytes_read_in_chunk = fread(&result[0] + bytes_read, 1, chunk_size, stdin);
-        bytes_read += bytes_read_in_chunk;
-
-        if(bytes_read_in_chunk == chunk_size && !feof(stdin)) {
-            result = resize_buffer(result, result->length + chunk_size);
-        }
-        else if(ferror(stdin)) {
-            free(result);
-            return NULL;
-        }
-    }
-
-    result = resize_buffer(result, bytes_read);
-
-    return result;
 }
 
 buffer *read_until_eol() {
@@ -180,11 +153,10 @@ buffer *parse_hex_buffer(const buffer *hex) {
     return result;
 }
 
-buffer *read_hex_until_eof() {
-    buffer *input = read_until_eof();
+buffer *read_hex_until_eol() {
+    buffer *input = read_until_eol();
 
-    buffer *result;
-    result = parse_hex_buffer(input);
+    buffer *result = parse_hex_buffer(input);
 
     free(input);
     return result;
