@@ -4,14 +4,21 @@
 int main() {
     printf("Enter two hex strings on separate lines:\n");
 
-    size_t one_length, two_length;
-    byte *one_hex = read_until_eol(&one_length);
-    byte *one = parse_hex_buffer(one_hex, one_length, &one_length);
-    putchar('\n');
+    buffer *one_hex = read_until_eol();
+    buffer *one = parse_hex_buffer(one_hex);
     
-    byte *two_hex = read_until_eol(&two_length);
-    byte *two = parse_hex_buffer(two_hex, two_length, &two_length);
+    buffer *two_hex = read_until_eol();
+    buffer *two = parse_hex_buffer(two_hex);
+
+    buffer *xor_result = xor_buffers(one, two);
+
+    hex_print_buffer(xor_result);
     putchar('\n');
 
+    free(one_hex);
+    free(one);
+    free(two_hex);
+    free(two);
+    free(xor_result);
     return 0;
 }
