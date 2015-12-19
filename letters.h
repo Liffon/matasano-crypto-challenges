@@ -1,3 +1,5 @@
+#include <math.h>
+
 const char *letter_frequencies = "etaoinsrhldcumfpgwybvkxjqz";
 
 const float letter_probabilities[26] = {
@@ -69,4 +71,38 @@ char to_lowercase(char maybe_letter) {
 	}
 
 	return result;
+}
+
+// Lower score means higher probability that the input buffer is ascii-encoded English
+float score_plaintext(const buffer *plaintext) {
+	int letter_frequencies[26] = {0};
+
+	int letters = 0;
+
+	for(size_t index = 0;
+		index < plaintext->length;
+		index++)
+	{
+		char maybe_letter = plaintext->bytes[index];
+		if(is_letter(maybe_letter)) {
+			letters++;
+			letter_frequencies[letter_index(maybe_letter)]++;
+		}
+	}
+
+	float chiSquared = 0;
+
+	for(char letter = 'a';
+		letter <= 'z';
+		letter++)
+	{
+		float observed = letter_frequencies[letter_index(letter)];
+		float expected = letters * letter_probabilities[letter_index(letter)];
+		chiSquared += pow(observed - expected, 2) / expected;
+	}
+
+	int penalty = plaintext->length - letters;
+	float score = chiSquared + penalty;
+
+	return score;
 }

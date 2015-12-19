@@ -198,3 +198,58 @@ void hex_print_buffer(buffer *chars) {
         printf("%02x", chars->bytes[i]);
     }
 }
+
+float find_best_single_byte_xor_score(buffer *ciphertext, byte *best_key_out, buffer **best_plaintext_out, bool log = false) {
+    buffer *expanded_key = allocate_buffer(ciphertext->length);
+    buffer *plaintext[256];
+
+    float scores[256];
+    float best_score = INFINITY;
+    byte best_key = 0;
+    for(int index = 0;
+        index < 256;
+        index++)
+    {
+        byte key = (byte)index;
+        for(size_t index = 0;
+            index < expanded_key->length;
+            index++)
+        {
+            expanded_key->bytes[index] = key;
+        }
+
+        plaintext[key] = xor_buffers(ciphertext, expanded_key);
+        scores[key] = score_plaintext(plaintext[key]);
+
+
+        if(scores[key] < best_score) {
+            best_score = scores[key];
+            best_key = key;
+
+            if(log) {
+                printf("Key 0x%02x gave \"", key);
+                print_buffer(plaintext[key]);
+                printf("\" with score %f\n", best_score);
+            }
+        }
+    }
+
+    if(best_key_out) {
+        *best_key_out = best_key;
+    }
+    if(best_plaintext_out) {
+        *best_plaintext_out = plaintext[best_key];
+    }
+
+    for(int key = 0;
+        key <= 255;
+        key++)
+    {
+        if(!best_plaintext_out || key != best_key) {
+            free(plaintext[key]);
+        }
+    }
+    free(expanded_key);
+
+    return best_score;
+}
