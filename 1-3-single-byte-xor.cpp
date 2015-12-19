@@ -1,7 +1,31 @@
 #include "matasano.h"
+#include <math.h>
 
-int score_plaintext(buffer *plaintext) {
-	// TODO: implement this with character frequency
+float score_plaintext(const buffer *plaintext) {
+	int letter_frequencies[26] = {0};
+
+	int letters = 0;
+
+	for(size_t index = 0;
+		index < plaintext->length;
+		index++)
+	{
+		char letter = plaintext->bytes[index];
+		if(is_letter(letter)) {
+			letters++;
+			letter_frequencies[letter_index(letter)]++;
+		}
+	}
+
+	for(char letter = 'a';
+		letter <= 'z';
+		letter++)
+	{
+		float observed = 0;
+		float expected = 0;
+		float chiSquared = pow(observed - expected, 2) / expected;
+	}
+
 	return 0;
 }
 
@@ -11,7 +35,7 @@ int main() {
 	buffer *plaintext[256];
 
 	int scores[256];
-	int best_score = 0;
+	float best_score = INFINITY;
 	byte best_key = 0;
 	for(byte key = 0;
 		key <= 255;
@@ -25,9 +49,9 @@ int main() {
 		}
 
 		plaintext[key] = xor_buffers(input, expanded_key);
-		scores[key] = score_plaintext(plaintext[key]);
+		scores[key] = score_plaintext(plaintext[key]); // lower is better
 
-		if(scores[key] > best_score) {
+		if(scores[key] < best_score) {
 			best_score = scores[key];
 			best_key = key;
 		}
@@ -35,6 +59,12 @@ int main() {
 
 	print_buffer(plaintext[best_key]);
 
+	for(byte key = 0;
+		key <= 255;
+		key++)
+	{
+		free(plaintext[key]);
+	}
 	free(input);
 	return 0;	
 }

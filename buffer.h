@@ -26,6 +26,17 @@ buffer *resize_buffer(buffer *old_buffer, size_t length) {
     return result;
 }
 
+buffer *copy_buffer(const buffer *old_buffer) {
+    size_t size = sizeof(size_t) + old_buffer->length;
+    buffer *result = (buffer *)malloc(size);
+    if(!result) {
+        return NULL;
+    }
+    memcpy(result, old_buffer, size);
+
+    return result;
+}
+
 byte& buffer::operator[] (size_t index) {
     return this->bytes[index];
 }
