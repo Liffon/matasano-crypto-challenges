@@ -183,7 +183,9 @@ void print_buffer(buffer *chars) {
         i < chars->length;
         i++)
     {
-        putchar(chars->bytes[i]);
+        if(chars->bytes[i] >= 32) {
+            putchar(chars->bytes[i]);
+        }
     }
 
 }

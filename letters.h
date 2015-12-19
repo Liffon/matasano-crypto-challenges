@@ -1,6 +1,6 @@
 const char *letter_frequencies = "etaoinsrhldcumfpgwybvkxjqz";
 
-const float letter_probabilites[26] = {
+const float letter_probabilities[26] = {
 	0.0804,	// A
 	0.0148,	// B
 	0.0334,	// C
