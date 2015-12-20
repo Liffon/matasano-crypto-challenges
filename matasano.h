@@ -124,6 +124,11 @@ buffer *read_hex_until_eol(FILE *fd = stdin) {
 }
 
 buffer* xor_buffers(buffer *one, buffer *two) {
+    if(!one || !two) {
+        return NULL;
+    }
+    assert(one->length == two->length);
+
     buffer *result = allocate_buffer(one->length);
     if(!result) {
         return result;
@@ -191,4 +196,25 @@ float find_best_single_byte_xor_score_with_distribution(buffer *ciphertext, byte
     free(expanded_key);
 
     return best_score;
+}
+
+long int hamming_distance(buffer *one, buffer *two) {
+    buffer *difference = xor_buffers(one, two);
+    if(!difference) {
+        return -1;
+    }
+
+    long int result = 0;
+    for(size_t index = 0;
+        index < difference->length;
+        index++)
+    {
+        for(int i = 0;
+            i < 8;
+            i++)
+        {
+            result += (difference->bytes[index] >> i) & 1;
+        }
+    }
+    return result;
 }

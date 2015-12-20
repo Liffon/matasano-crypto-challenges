@@ -1,20 +1,20 @@
 #include "matasano.h"
 
 int main(int argc, char *argv[]) {
-    const char *input = "1-5-input.txt";
+    const char *input_filename = "1-5-input.txt";
     const char *key = "ICE";
     size_t key_length = 3;
     if(argc >= 2) {
-        input = argv[1];
+        input_filename = argv[1];
     }
     if(argc >= 4) {
         key = argv[2];
         key_length = atoi(argv[3]);
     }
 
-    buffer *plaintext = read_file(input);
+    buffer *plaintext = read_file(input_filename);
     if(!plaintext) {
-        fprintf(stderr, "Unable to open file '%s'\n", input);
+        fprintf(stderr, "Unable to open file '%s'\n", input_filename);
         return 1;
     }
 
