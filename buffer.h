@@ -87,6 +87,23 @@ buffer *read_until_eol(FILE *fd = stdin) {
     }
 }
 
+buffer *read_file(const char *filename) {
+    FILE *fd = fopen(filename, "r");
+    if(!fd) {
+        return NULL;
+    }
+
+    fseek(fd, 0, SEEK_END);
+    size_t file_size = ftell(fd);
+    fseek(fd, 0, SEEK_SET);
+
+    buffer *result = allocate_buffer(file_size);
+    fread(result->bytes, file_size, 1, fd);
+
+    fclose(fd);
+    return result;
+}
+
 void print_buffer(buffer *chars) {
     for(size_t i = 0;
         i < chars->length;
@@ -109,5 +126,8 @@ void hex_print_buffer(buffer *chars) {
         i++)
     {
         printf("%02x", chars->bytes[i]);
+        if(i % 40 == 39) {
+            putchar('\n');
+        }
     }
 }
