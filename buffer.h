@@ -19,11 +19,17 @@ buffer *allocate_buffer(size_t length) {
 }
 
 buffer *resize_buffer(buffer *old_buffer, size_t length) {
-    buffer *result = (buffer *)realloc(old_buffer, sizeof(size_t) + length);
-    if(result) {
-        result->length = length;
+    if(length) {
+        buffer *result = (buffer *)realloc(old_buffer, sizeof(size_t) + length);
+        if(result) {
+            result->length = length;
+        }
+        return result;
     }
-    return result;
+    else {
+        free(old_buffer);
+        return NULL;
+    }
 }
 
 buffer *copy_buffer(const buffer *old_buffer) {

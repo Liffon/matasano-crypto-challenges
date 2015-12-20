@@ -74,10 +74,13 @@ char to_lowercase(char maybe_letter) {
 }
 
 // Lower score means higher probability that the input buffer is ascii-encoded English
-float score_plaintext(const buffer *plaintext) {
+float score_plaintext_with_distribution(const buffer *plaintext) {
 	int letter_frequencies[26] = {0};
 
 	int letters = 0;
+	int non_printables = 0;
+	int extended_asciis = 0;
+	int spaces = 0;
 
 	for(size_t index = 0;
 		index < plaintext->length;
@@ -87,6 +90,15 @@ float score_plaintext(const buffer *plaintext) {
 		if(is_letter(maybe_letter)) {
 			letters++;
 			letter_frequencies[letter_index(maybe_letter)]++;
+		}
+		if(maybe_letter < ' ' && maybe_letter != '\n') {
+			non_printables++;
+		}
+		if(maybe_letter > 127) {
+			extended_asciis++;
+		}
+		if(maybe_letter == ' ') {
+			spaces++;
 		}
 	}
 
@@ -101,7 +113,7 @@ float score_plaintext(const buffer *plaintext) {
 		chiSquared += pow(observed - expected, 2) / expected;
 	}
 
-	int penalty = plaintext->length - letters;
+	int penalty = 10 * (plaintext->length - letters - spaces) + 50 * non_printables + 10 * extended_asciis;
 	float score = chiSquared + penalty;
 
 	return score;

@@ -80,7 +80,7 @@ buffer *base64_encode(buffer *input) {
     return output;
 }
 
-buffer *read_until_eol() {
+buffer *read_until_eol(FILE *fd = stdin) {
     const size_t chunk_size = 1;
     buffer *result = allocate_buffer(chunk_size);
     if(!result) {
@@ -91,8 +91,8 @@ buffer *read_until_eol() {
     size_t bytes_read_in_chunk;
     bool found_eol = false;
     size_t eol_index = 0;
-    while(!feof(stdin)) {
-        bytes_read_in_chunk = fread(&result->bytes[0] + bytes_read, 1, chunk_size, stdin);
+    while(!feof(fd)) {
+        bytes_read_in_chunk = fread(&result->bytes[0] + bytes_read, 1, chunk_size, fd);
         bytes_read += bytes_read_in_chunk;
 
         for(; eol_index < bytes_read; eol_index++) {
@@ -105,16 +105,16 @@ buffer *read_until_eol() {
             break;
         }
 
-        if(bytes_read_in_chunk == chunk_size && !feof(stdin)) {
+        if(bytes_read_in_chunk == chunk_size && !feof(fd)) {
             result = resize_buffer(result, result->length + chunk_size);
         }
-        else if(ferror(stdin)) {
+        else if(ferror(fd)) {
             free(result);
             return NULL;
         }
     }
 
-    if(!found_eol) {
+    if(!found_eol && !feof(fd)) {
         free(result);
         return NULL;
     } else {
@@ -154,13 +154,16 @@ buffer *parse_hex_buffer(const buffer *hex) {
     return result;
 }
 
-buffer *read_hex_until_eol() {
-    buffer *input = read_until_eol();
+buffer *read_hex_until_eol(FILE *fd = stdin) {
+    buffer *input = read_until_eol(fd);
 
-    buffer *result = parse_hex_buffer(input);
-
-    free(input);
-    return result;
+    if(input) {
+        buffer *result = parse_hex_buffer(input);
+        free(input);
+        return result;
+    } else {
+        return input;
+    }
 }
 
 buffer* xor_buffers(buffer *one, buffer *two) {
@@ -183,8 +186,12 @@ void print_buffer(buffer *chars) {
         i < chars->length;
         i++)
     {
-        if(chars->bytes[i] >= 32) {
+        if(chars->bytes[i] == '\\') {
+            printf("\\\\");
+        } else if(chars->bytes[i] >= 32) {
             putchar(chars->bytes[i]);
+        } else if(chars->bytes[i] == '\n') {
+            printf("\\n");
         }
     }
 
@@ -199,7 +206,7 @@ void hex_print_buffer(buffer *chars) {
     }
 }
 
-float find_best_single_byte_xor_score(buffer *ciphertext, byte *best_key_out, buffer **best_plaintext_out, bool log = false) {
+float find_best_single_byte_xor_score_with_distribution(buffer *ciphertext, byte *best_key_out, buffer **best_plaintext_out, bool log = false) {
     buffer *expanded_key = allocate_buffer(ciphertext->length);
     buffer *plaintext[256];
 
@@ -219,7 +226,7 @@ float find_best_single_byte_xor_score(buffer *ciphertext, byte *best_key_out, bu
         }
 
         plaintext[key] = xor_buffers(ciphertext, expanded_key);
-        scores[key] = score_plaintext(plaintext[key]);
+        scores[key] = score_plaintext_with_distribution(plaintext[key]);
 
 
         if(scores[key] < best_score) {
