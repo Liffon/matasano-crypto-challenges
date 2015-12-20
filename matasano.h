@@ -80,49 +80,6 @@ buffer *base64_encode(buffer *input) {
     return output;
 }
 
-buffer *read_until_eol(FILE *fd = stdin) {
-    const size_t chunk_size = 1;
-    buffer *result = allocate_buffer(chunk_size);
-    if(!result) {
-        return NULL;
-    }
-
-    size_t bytes_read = 0;
-    size_t bytes_read_in_chunk;
-    bool found_eol = false;
-    size_t eol_index = 0;
-    while(!feof(fd)) {
-        bytes_read_in_chunk = fread(&result->bytes[0] + bytes_read, 1, chunk_size, fd);
-        bytes_read += bytes_read_in_chunk;
-
-        for(; eol_index < bytes_read; eol_index++) {
-            if(result->bytes[eol_index] == '\n') {
-                found_eol = true;
-                break;
-            }
-        }
-        if(found_eol) {
-            break;
-        }
-
-        if(bytes_read_in_chunk == chunk_size && !feof(fd)) {
-            result = resize_buffer(result, result->length + chunk_size);
-        }
-        else if(ferror(fd)) {
-            free(result);
-            return NULL;
-        }
-    }
-
-    if(!found_eol && !feof(fd)) {
-        free(result);
-        return NULL;
-    } else {
-        result = resize_buffer(result, eol_index);
-        return result;
-    }
-}
-
 buffer *parse_hex_buffer(const buffer *hex) {
     buffer *result = allocate_buffer(hex->length / 2);
     if(!result) {
@@ -179,31 +136,6 @@ buffer* xor_buffers(buffer *one, buffer *two) {
     }
 
     return result;
-}
-
-void print_buffer(buffer *chars) {
-    for(size_t i = 0;
-        i < chars->length;
-        i++)
-    {
-        if(chars->bytes[i] == '\\') {
-            printf("\\\\");
-        } else if(chars->bytes[i] >= 32) {
-            putchar(chars->bytes[i]);
-        } else if(chars->bytes[i] == '\n') {
-            printf("\\n");
-        }
-    }
-
-}
-
-void hex_print_buffer(buffer *chars) {
-    for(size_t i = 0;
-        i < chars->length;
-        i++)
-    {
-        printf("%02x", chars->bytes[i]);
-    }
 }
 
 float find_best_single_byte_xor_score_with_distribution(buffer *ciphertext, byte *best_key_out, buffer **best_plaintext_out, bool log = false) {
