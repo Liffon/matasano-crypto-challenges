@@ -43,6 +43,20 @@ buffer *copy_buffer(const buffer *old_buffer) {
     return result;
 }
 
+buffer *cut_buffer(const buffer *source, size_t start, size_t length, buffer *destination = 0) {
+    if(!destination) {
+        destination = allocate_buffer(length);
+    } else if(destination->length != length) {
+        destination = resize_buffer(destination, length);
+    }
+    if(!destination || !source) {
+        return NULL;
+    }
+
+    memcpy(destination->bytes, source->bytes + start, length);
+    return destination;
+}
+
 buffer *read_until_eol(FILE *fd = stdin) {
     const size_t chunk_size = 1;
     buffer *result = allocate_buffer(chunk_size);
@@ -103,6 +117,7 @@ buffer *read_file(const char *filename) {
     fclose(fd);
     return result;
 }
+
 
 void print_buffer(buffer *chars) {
     for(size_t i = 0;

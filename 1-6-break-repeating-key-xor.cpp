@@ -7,17 +7,26 @@ int main(int argc, char *argv[]) {
 	}
 
 	buffer *ciphertext = read_file(input_filename);
-	if(!plaintext) {
+	if(!ciphertext) {
 		fprintf(stderr, "Unable to open file '%s'\n", input_filename);
 		return 1;
 	}
 
-	printf("Give me two strings to compute hamming distance on:\n");
+	float normalized_hamming_distances[ciphertext->length / 2];
 
-	buffer *one = read_hex_until_eol();
-	buffer *two = read_hex_until_eol();
+	int keysize;
+	buffer *one = allocate_buffer(2);
+	buffer *two = allocate_buffer(2);
+	for(keysize = 2;
+		keysize <= ciphertext->length / 2;
+		keysize++)
+	{
+		one = cut_buffer(ciphertext, 0, keysize, one);
+		two = cut_buffer(ciphertext, keysize, keysize, two);
 
-	printf("Hamming distance between inputs is %d\n", hamming_distance(one, two));
+		normalized_hamming_distances[keysize] = hamming_distance(one, two) / (float)keysize;
+		printf("Normalized Hamming distance: %f\n", normalized_hamming_distances[keysize]);
+	}
 
 	free(ciphertext);
 	return 0;
