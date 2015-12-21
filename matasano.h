@@ -125,7 +125,9 @@ base256bytes base64_to_base256(base64bytes input_chunk) {
     return result;
 }
 
-buffer *base64_decode(buffer *input) {
+buffer *base64_decode(buffer *raw_input) {
+    buffer *input = remove_whitespace(copy_buffer(raw_input));
+
     assert(input->length % 4 == 0);
     size_t output_length = input->length / 4 * 3;
     buffer *output = allocate_buffer(output_length);
@@ -159,7 +161,9 @@ buffer *base64_decode(buffer *input) {
     return output;
 }
 
-buffer *parse_hex_buffer(const buffer *hex) {
+buffer *parse_hex_buffer(const buffer *raw_hex) {
+    buffer *hex = remove_whitespace(copy_buffer(hex));
+
     buffer *result = allocate_buffer(hex->length / 2);
     if(!result) {
         return NULL;
@@ -186,6 +190,7 @@ buffer *parse_hex_buffer(const buffer *hex) {
         }
     }
     free(temp_string);
+    free(hex);
 
     return result;
 }

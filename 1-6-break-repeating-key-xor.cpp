@@ -6,11 +6,12 @@ int main(int argc, char *argv[]) {
 		input_filename = argv[1];
 	}
 
-	buffer *ciphertext = read_file(input_filename);
-	if(!ciphertext) {
+	buffer *raw_ciphertext = read_file(input_filename);
+	if(!raw_ciphertext) {
 		fprintf(stderr, "Unable to open file '%s'\n", input_filename);
 		return 1;
 	}
+	buffer *ciphertext = base64_decode(raw_ciphertext);
 
 	float normalized_hamming_distances[ciphertext->length / 2];
 
