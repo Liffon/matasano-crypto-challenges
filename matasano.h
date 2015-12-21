@@ -5,24 +5,25 @@
 #include "buffer.h"
 #include "letters.h"
 
-const char *base64values = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const char base64values[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 struct base256bytes {
     byte bytes[3];
+    int significant_bytes;
 };
 
 struct base64bytes {
     byte bytes[4];
 };
 
-base64bytes base64_chunk(base256bytes input_chunk, int bytes = 3) {
-    assert(bytes >= 1);
-    assert(bytes <= 3);
+base64bytes base256_to_base64(base256bytes input_chunk) {
+    assert(input_chunk.significant_bytes >= 1);
+    assert(input_chunk.significant_bytes <= 3);
 
-    if(bytes < 3) {
+    if(input_chunk.significant_bytes < 3) {
         input_chunk.bytes[2] = 0;
     }
-    if(bytes < 2) {
+    if(input_chunk.significant_bytes < 2) {
         input_chunk.bytes[1] = 0;
     }
 
@@ -39,10 +40,10 @@ base64bytes base64_chunk(base256bytes input_chunk, int bytes = 3) {
     result.bytes[2] = base64values[result.bytes[2]];
     result.bytes[3] = base64values[result.bytes[3]];
 
-    if(bytes < 3) {
+    if(input_chunk.significant_bytes < 3) {
         result.bytes[3] = '=';
     }
-    if(bytes < 2) {
+    if(input_chunk.significant_bytes < 2) {
         result.bytes[2] = '=';
     }
 
@@ -69,13 +70,91 @@ buffer *base64_encode(buffer *input) {
 
         int bytes_left = input->length - byte_index;
         int bytes_in_chunk = bytes_left < 3 ? bytes_left : 3;
-        base64bytes result = base64_chunk(input_chunk, bytes_in_chunk);
+
+        input_chunk.significant_bytes = bytes_in_chunk;
+        base64bytes result = base256_to_base64(input_chunk);
 
         output->bytes[result_index++] = result.bytes[0];
         output->bytes[result_index++] = result.bytes[1];
         output->bytes[result_index++] = result.bytes[2];
         output->bytes[result_index++] = result.bytes[3];
     }
+
+    return output;
+}
+
+base256bytes base64_to_base256(base64bytes input_chunk) {
+    // 000000 111111 222222 333333
+    // aaaaaa aabbbb bbbbcc cccccc
+
+    base256bytes result = {};
+
+    if(input_chunk.bytes[2] == '=') {
+        result.significant_bytes = 1;
+    } else if(input_chunk.bytes[3] == '=') {
+        result.significant_bytes = 2;
+    } else {
+        result.significant_bytes = 3;
+    }
+
+    for(size_t byte_index = 0;
+        byte_index < 4 && input_chunk.bytes[byte_index] != '=';
+        byte_index++)
+    {
+        for(size_t raw_index = 0;
+            raw_index < (sizeof(base64values) / sizeof(base64values[0]) - 1);
+            raw_index++)
+        {
+            if(input_chunk.bytes[byte_index] == base64values[raw_index]) {
+                input_chunk.bytes[byte_index] = raw_index;
+                break;
+            } else if(raw_index >= sizeof(base64values) / sizeof(base64values[0]) - 1) {
+                assert(0);
+            }
+        }
+    }
+
+    result.bytes[0] = (input_chunk.bytes[0] << 2) | ((input_chunk.bytes[1] >> 4) & 3);
+    if(result.significant_bytes >= 2) {
+        result.bytes[1] = (input_chunk.bytes[1] << 4) | ((input_chunk.bytes[2] >> 2) & 15);
+    }
+    if(result.significant_bytes == 3) {
+        result.bytes[2] = (input_chunk.bytes[2] << 6) | (input_chunk.bytes[3] & 63);
+    }
+
+    return result;
+}
+
+buffer *base64_decode(buffer *input) {
+    assert(input->length % 4 == 0);
+    size_t output_length = input->length / 4 * 3;
+    buffer *output = allocate_buffer(output_length);
+
+    if(!output) {
+        return NULL;
+    }
+
+    base64bytes input_chunk;
+
+    size_t result_index = 0;
+    for(size_t input_index = 0;
+        input_index < input->length;
+        input_index += 4)
+    {
+        memcpy(input_chunk.bytes, &input->bytes[input_index], 4);
+
+        base256bytes result = base64_to_base256(input_chunk);
+
+        assert(result.significant_bytes <= 3);
+        assert(result.significant_bytes >= 1);
+        memcpy(&output->bytes[input_index / 4 * 3], result.bytes, result.significant_bytes);
+
+        if(result.significant_bytes < 3) {
+            output = resize_buffer(output, output->length + result.significant_bytes - 3);
+            break;
+        }
+    }
+
 
     return output;
 }

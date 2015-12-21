@@ -146,3 +146,26 @@ void hex_print_buffer(buffer *chars) {
         }
     }
 }
+
+buffer *remove_whitespace(buffer *input) {
+    assert(input);
+
+    size_t number_of_whitespaces = 0;
+    size_t index;
+    for(index = 0;
+        index < input->length;
+        index++)
+    {
+        input->bytes[index - number_of_whitespaces] = input->bytes[index];
+
+        if(input->bytes[index] == '\n'
+           || input->bytes[index] == '\r'
+           || input->bytes[index] == '\t'
+           || input->bytes[index] == ' ') {
+            number_of_whitespaces++;
+        }
+    }
+
+    buffer *result = resize_buffer(input, input->length - number_of_whitespaces);
+    return result;
+}
