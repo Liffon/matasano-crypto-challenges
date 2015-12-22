@@ -63,19 +63,23 @@ buffer *cut_buffer(const buffer *source, size_t start, size_t length, buffer *de
     return destination;
 }
 
-buffer *take_every_nth_byte(const buffer *source, size_t start, size_t interval) {
+buffer *take_every_nth_byte(const buffer *source, size_t start, size_t interval, buffer *destination = 0) {
     if(!source) {
         return NULL;
     }
 
     // length / interval rounded up
-    size_t result_length = (source->length + interval - 1) / interval;
-    buffer *result = allocate_buffer(result_length);
-    if(!result) {
+    size_t length = (source->length + interval - 1) / interval;
+    if(!destination) {
+        destination = allocate_buffer(length);
+    } else if(destination->length < length) {
+        destination = resize_buffer(destination, length);
+    }
+    if(!destination) {
         return NULL;
     }
 
-    byte *write_destination = result->bytes;
+    byte *write_destination = destination->bytes;
     for(size_t i = start;
         i < source->length;
         i += interval)
@@ -83,8 +87,8 @@ buffer *take_every_nth_byte(const buffer *source, size_t start, size_t interval)
         *(write_destination++) = source->bytes[i];
     }
 
-    result = resize_buffer(result, write_destination - result->bytes);
-    return result;
+    destination = resize_buffer(destination, write_destination - destination->bytes);
+    return destination;
 }
 
 buffer *read_until_eol(FILE *fd = stdin) {

@@ -1,22 +1,23 @@
 #include "matasano.h"
 
 int main(int argc, char *argv[]) {
-	const char *input_filename = "1-6-input.txt";
-	if(argc >= 2) {
-		input_filename = argv[1];
-	}
+    const char *input_filename = "1-6-input.txt";
+    int max_keysize = 40;
+    if(argc >= 2) {
+        input_filename = argv[1];
+    }
+    if(argc >= 3) {
+        max_keysize = atoi(argv[2]);
+    }
 
-	buffer *raw_ciphertext = read_file(input_filename);
-	if(!raw_ciphertext) {
-		fprintf(stderr, "Unable to open file '%s'\n", input_filename);
-		return 1;
-	}
-	buffer *ciphertext = base64_decode(raw_ciphertext);
-    printf("Decoded ciphertext:\n");
-    hex_print_buffer(ciphertext);
-    putchar('\n');
+    buffer *raw_ciphertext = read_file(input_filename);
+    if(!raw_ciphertext) {
+        fprintf(stderr, "Unable to open file '%s'\n", input_filename);
+        return 1;
+    }
+    buffer *ciphertext = base64_decode(raw_ciphertext);
+    free(raw_ciphertext);
 
-	int max_keysize = 40;
 	float normalized_hamming_distances[max_keysize];
 
 	int keysizes[max_keysize];
@@ -47,9 +48,13 @@ int main(int argc, char *argv[]) {
         float average = (distances[0] + distances[1] + distances[2]
                          + distances[3] + distances[4] + distances[5]) / 6.0;
 		normalized_hamming_distances[keysize] = average / (float)keysize;
-        printf("Keysize of %d -> %f\n", keysize, normalized_hamming_distances[keysize]);
 	}
+    free(one);
+    free(two);
+    free(three);
+    free(four);
 
+    buffer *ciphertext_block = allocate_buffer(ciphertext->length);
     buffer *long_key = allocate_buffer(ciphertext->length);
     buffer *key_guesses[max_keysize];
     int most_probable_keysize = -1;
@@ -75,9 +80,7 @@ int main(int argc, char *argv[]) {
         normalized_hamming_distances[best_keysize] = INFINITY;
 
         int keysize_guess = best_keysize;
-        printf("=== Trying keysize %d ===\n", keysize_guess);
 
-        buffer *ciphertext_blocks[keysize_guess];
         key_guesses[keysize_guess] = allocate_buffer(keysize_guess);
 
         float average_score = 0;
@@ -85,27 +88,24 @@ int main(int argc, char *argv[]) {
             block_index < keysize_guess;
             block_index++)
         {
-            ciphertext_blocks[block_index] = take_every_nth_byte(ciphertext, block_index, keysize_guess);
+            ciphertext_block = take_every_nth_byte(ciphertext,
+                                                   block_index, keysize_guess,
+                                                   ciphertext_block);
 
-            buffer *plaintext;
             float score =
                     find_best_single_byte_xor_score_with_distribution(
-                            ciphertext_blocks[block_index],
-                            &key_guesses[keysize_guess]->bytes[block_index], &plaintext);
+                            ciphertext_block,
+                            &key_guesses[keysize_guess]->bytes[block_index], 0);
             average_score += score;
 
-            //printf("Block %d: best key candidate (score %f): 0x%02x. Gives:\n", block_index, score, key);
-            //print_buffer(plaintext);
-            //putchar('\n');
         }
         average_score = average_score / (float)keysize_guess;
         if(average_score < best_average_score) {
             best_average_score = average_score;
-            printf("Average score for keysize %d is %f, which is best so far.\n",
-                   keysize_guess, average_score);
+            printf("Average score for key \"");
+            print_buffer(key_guesses[keysize_guess]);
+            printf("\" is %f.\n", average_score);
             most_probable_keysize = keysize_guess;
-        } else {
-            printf("This gives worse results than what we already had.\n");
         }
     }
 
@@ -123,5 +123,14 @@ int main(int argc, char *argv[]) {
     literally_print_buffer(plaintext);
 
 	free(ciphertext);
+    free(ciphertext_block);
+    free(long_key);
+    free(plaintext);
+    for(int index = 0;
+        index < sizeof(best_keysizes) / sizeof(best_keysizes[0]);
+        index++)
+    {
+        free(key_guesses[best_keysizes[index]]);
+    }
 	return 0;
 }

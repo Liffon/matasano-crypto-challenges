@@ -160,7 +160,7 @@ buffer *base64_decode(buffer *raw_input) {
         }
     }
 
-
+    free(input);
     return output;
 }
 
@@ -303,6 +303,7 @@ long int hamming_distance(buffer *one, buffer *two) {
             result += (difference->bytes[index] >> i) & 1;
         }
     }
+    free(difference);
     return result;
 }
 #endif
