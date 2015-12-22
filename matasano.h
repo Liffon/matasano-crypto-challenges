@@ -1,3 +1,6 @@
+#ifndef MATASANO_H
+#define MATASANO_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -302,3 +305,4 @@ long int hamming_distance(buffer *one, buffer *two) {
     }
     return result;
 }
+#endif

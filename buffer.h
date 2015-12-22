@@ -1,5 +1,9 @@
+#ifndef BUFFER_H
+#define BUFFER_H
+
 #include <stdint.h>
 #include <inttypes.h>
+#include "matasano.h"
 
 typedef uint8_t byte;
 
@@ -9,6 +13,8 @@ struct buffer {
 
     byte& operator[] (size_t);
 };
+
+buffer *base64_encode(buffer *input);
 
 buffer *allocate_buffer(size_t length) {
     buffer *result = (buffer *)malloc(sizeof(size_t) + length);
@@ -55,6 +61,30 @@ buffer *cut_buffer(const buffer *source, size_t start, size_t length, buffer *de
 
     memcpy(destination->bytes, source->bytes + start, length);
     return destination;
+}
+
+buffer *take_every_nth_byte(const buffer *source, size_t start, size_t interval) {
+    if(!source) {
+        return NULL;
+    }
+
+    // length / interval rounded up
+    size_t result_length = (source->length + interval - 1) / interval;
+    buffer *result = allocate_buffer(result_length);
+    if(!result) {
+        return NULL;
+    }
+
+    byte *write_destination = result->bytes;
+    for(size_t i = start;
+        i < source->length;
+        i += interval)
+    {
+        *(write_destination++) = source->bytes[i];
+    }
+
+    result = resize_buffer(result, write_destination - result->bytes);
+    return result;
 }
 
 buffer *read_until_eol(FILE *fd = stdin) {
@@ -112,7 +142,9 @@ buffer *read_file(const char *filename) {
     fseek(fd, 0, SEEK_SET);
 
     buffer *result = allocate_buffer(file_size);
-    fread(result->bytes, file_size, 1, fd);
+    size_t bytes_read = fread(result->bytes, 1, file_size, fd);
+
+    assert(bytes_read == file_size);
 
     fclose(fd);
     return result;
@@ -132,7 +164,15 @@ void print_buffer(buffer *chars) {
             printf("\\n");
         }
     }
+}
 
+void literally_print_buffer(buffer *chars) {
+    for (size_t i = 0;
+         i < chars->length;
+         i++)
+    {
+        putchar(chars->bytes[i]);
+    }
 }
 
 void hex_print_buffer(buffer *chars) {
@@ -145,6 +185,22 @@ void hex_print_buffer(buffer *chars) {
             putchar('\n');
         }
     }
+}
+
+void base64_print_buffer(buffer *input) {
+    buffer *base64_input = base64_encode(input);
+
+    for(size_t i = 0;
+        i < base64_input->length;
+        i++)
+    {
+        putchar(base64_input->bytes[i]);
+        if(i % 60 == 59) {
+            putchar('\n');
+        }
+    }  
+
+    free(base64_input);
 }
 
 buffer *remove_whitespace(buffer *input) {
@@ -169,3 +225,14 @@ buffer *remove_whitespace(buffer *input) {
     buffer *result = resize_buffer(input, input->length - number_of_whitespaces);
     return result;
 }
+
+void fill_buffer_repeating(buffer *buffer_to_fill, byte *data, size_t data_length) {
+    for(size_t index = 0;
+        index < buffer_to_fill->length;
+        index++)
+    {
+        buffer_to_fill->bytes[index] = data[index % data_length];
+    }
+}
+
+#endif
