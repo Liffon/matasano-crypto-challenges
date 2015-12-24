@@ -165,7 +165,12 @@ buffer *base64_decode(buffer *raw_input) {
 }
 
 buffer *parse_hex_buffer(const buffer *raw_hex) {
-    buffer *hex = remove_whitespace(copy_buffer(hex));
+    buffer *hex = copy_buffer(raw_hex);
+    if(!hex) {
+        return NULL;
+    }
+
+    hex = remove_whitespace(hex);
 
     buffer *result = allocate_buffer(hex->length / 2);
     if(!result) {
