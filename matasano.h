@@ -66,13 +66,17 @@ buffer *base64_encode(buffer *input) {
         byte_index < input->length;
         byte_index += 3)
     {
-        base256bytes input_chunk;
-        input_chunk.bytes[0] = input->bytes[byte_index];
-        input_chunk.bytes[1] = input->bytes[byte_index + 1];
-        input_chunk.bytes[2] = input->bytes[byte_index + 2];
-
         int bytes_left = input->length - byte_index;
         int bytes_in_chunk = bytes_left < 3 ? bytes_left : 3;
+
+        base256bytes input_chunk = {};
+        input_chunk.bytes[0] = input->bytes[byte_index];
+        if(bytes_in_chunk >= 2) {
+            input_chunk.bytes[1] = input->bytes[byte_index + 1];
+        }
+        if(bytes_in_chunk == 3) {
+            input_chunk.bytes[2] = input->bytes[byte_index + 2];
+        }
 
         input_chunk.significant_bytes = bytes_in_chunk;
         base64bytes result = base256_to_base64(input_chunk);
@@ -233,6 +237,18 @@ buffer* xor_buffers(buffer *one, buffer *two) {
     }
 
     return result;
+}
+
+void xor_buffers_into_first(buffer *one, buffer *two) {
+    assert(one && two);
+    assert(one->length == two->length);
+
+    for(size_t i = 0;
+        i < one->length;
+        i++)
+    {
+        one->bytes[i] = one->bytes[i] ^ two->bytes[i];
+    }
 }
 
 float find_best_single_byte_xor_score_with_distribution(buffer *ciphertext, byte *best_key_out, buffer **best_plaintext_out, bool log = false) {

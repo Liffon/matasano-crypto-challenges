@@ -239,4 +239,31 @@ void fill_buffer_repeating(buffer *buffer_to_fill, byte *data, size_t data_lengt
     }
 }
 
+buffer *pkcs7_pad(buffer *input, size_t new_length) {
+    if(!input) {
+        return NULL;
+    }
+
+    int length_difference = new_length - input->length;
+    assert(length_difference < 256); // Otherwise it won't fit!
+    input = resize_buffer(input, new_length);
+    if(length_difference > 0) {
+        for(size_t index = input->length - length_difference;
+            index < input->length;
+            index++)
+        {
+            input->bytes[index] = (byte)length_difference;
+        }
+    }
+
+    return input;
+}
+
+buffer *pkcs7_pad_to_multiple_of(buffer *input, size_t multiple) {
+    if(!input) {
+        return NULL;
+    }
+    return pkcs7_pad(input, input->length + multiple - (input->length % multiple));
+}
+
 #endif
